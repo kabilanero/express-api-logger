@@ -74,12 +74,14 @@ function maskSensitive(obj, keysToMask) {
   }
   return result;
 }
-function safeStringify(value, sensitiveKeys) {
+function safeStringify(value, sensitiveKeys, maxLength) {
   try {
     if (value === void 0) return "";
     const safe = typeof value === "object" && value !== null ? maskSensitive(value, sensitiveKeys) : value;
     let str = typeof safe === "string" ? safe : JSON.stringify(safe);
-    if (str.length > 200) str = str.slice(0, 200) + "...";
+    if (maxLength !== Infinity && str.length > maxLength) {
+      str = str.slice(0, maxLength) + `... [truncated, ${str.length} chars total]`;
+    }
     return str;
   } catch {
     return "[unserializable]";
@@ -93,6 +95,7 @@ function apilogger(options = {}) {
     "authorization",
     "apikey"
   ];
+  const maxBodyLength = options.maxBodyLength ?? Infinity;
   return function(req, res, next) {
     const start = process.hrtime.bigint();
     let resBody;
@@ -118,10 +121,10 @@ function apilogger(options = {}) {
       const timestamp = color((/* @__PURE__ */ new Date()).toISOString(), colors.white);
       let reqBodyStr = "";
       if (req.body && Object.keys(req.body).length > 0) {
-        reqBodyStr = safeStringify(req.body, sensitiveKeys);
+        reqBodyStr = safeStringify(req.body, sensitiveKeys, maxBodyLength);
       }
       const reqBodyLog = reqBodyStr ? color(`req:${reqBodyStr}`, colors.yellow) : "";
-      const resBodyStr = safeStringify(resBody, sensitiveKeys);
+      const resBodyStr = safeStringify(resBody, sensitiveKeys, maxBodyLength);
       const resBodyLog = resBodyStr ? color(`res:${resBodyStr}`, colors.cyan) : "";
       process.stdout.write(
         `${method} ${url} ${status} ${time} ${timestamp} ${reqBodyLog} ${resBodyLog}
