@@ -1,6 +1,6 @@
 {
   "name": "express-dev-logger",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Lightweight and fast Express middleware for logging HTTP requests with colored output",
   "keywords": [
     "express-devlogger",
