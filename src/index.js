@@ -9,7 +9,7 @@ const colors = {
   cyan: "\x1b[36m",
   magenta: "\x1b[35m",
   white: "\x1b[37m"
-}
+};
 
 function color(text, colorCode) {
   return `${colorCode}${text}${colors.reset}`;
@@ -56,7 +56,7 @@ function maskSensitive(obj, keysToMask) {
   return result;
 }
 
-function safeStringify(value, sensitiveKeys) {
+function safeStringify(value, sensitiveKeys, maxLength) {
   try {
     if (value === undefined) return "";
     const safe =
@@ -64,7 +64,9 @@ function safeStringify(value, sensitiveKeys) {
         ? maskSensitive(value, sensitiveKeys)
         : value;
     let str = typeof safe === "string" ? safe : JSON.stringify(safe);
-    if (str.length > 200) str = str.slice(0, 200) + "...";
+    if (maxLength !== Infinity && str.length > maxLength) {
+      str = str.slice(0, maxLength) + `... [truncated, ${str.length} chars total]`;
+    }
     return str;
   } catch {
     return "[unserializable]";
@@ -79,6 +81,9 @@ function apilogger(options = {}) {
     "authorization",
     "apikey"
   ];
+  // how many chars of req/res body to print before truncating.
+  // Infinity by default = full body always printed, no cutoff.
+  const maxBodyLength = options.maxBodyLength ?? Infinity;
 
   return function (req, res, next) {
     const start = process.hrtime.bigint();
@@ -116,14 +121,14 @@ function apilogger(options = {}) {
       // 🔐 Safe body masking — request
       let reqBodyStr = "";
       if (req.body && Object.keys(req.body).length > 0) {
-        reqBodyStr = safeStringify(req.body, sensitiveKeys);
+        reqBodyStr = safeStringify(req.body, sensitiveKeys, maxBodyLength);
       }
       const reqBodyLog = reqBodyStr
         ? color(`req:${reqBodyStr}`, colors.yellow)
         : "";
 
       // 🔐 Safe body masking — response
-      const resBodyStr = safeStringify(resBody, sensitiveKeys);
+      const resBodyStr = safeStringify(resBody, sensitiveKeys, maxBodyLength);
       const resBodyLog = resBodyStr
         ? color(`res:${resBodyStr}`, colors.cyan)
         : "";
