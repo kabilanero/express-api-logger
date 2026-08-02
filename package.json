@@ -22,7 +22,7 @@
   "type": "module",
   "main": "./dist/index.cjs",
   "scripts": {
-    "build": "tsup src/index.js --format cjs,esm --clean",
+    "build": "tsup src/index.js --format cjs,esm --clean && node scripts/fix-cjs-exports.js",
     "prepublishOnly": "npm run build"
   },
   "exports": {
